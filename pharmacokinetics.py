@@ -7,6 +7,7 @@ from utils import LogNormal,weighted_euclidean_norm, run_euler_maruyama
 sampling_dt = 0.005
 sampling_times = [0.25, 0.5, 1, 2, 3.5, 5, 7, 9, 12]
 train_size = 500
+drug_dose = 4
 
 class BrownianMotion(Model):
     def __init__(self, dt=0.01) -> None:
@@ -19,7 +20,7 @@ class BrownianMotion(Model):
         return NotImplementedError
 
 class PharmacokineticModel(Model):
-    def __init__(self, D, K_a, K_e, Cl, sigma, dt=0.01):
+    def __init__(self, D, K_a, K_e, Cl, sigma=1, dt=0.01):
         self.D = D
         self.K_a = K_a
         self.K_e = K_e

@@ -6,10 +6,10 @@ import pathlib
 from utils import run_abc_mcmc
 from pharmacokinetics import make_pharmacokinetic_proposal_model, compute_pharmacokinetics_discrepancy, generate_pharmacokinetics_data, PharmacokineticPriorModel, train_size
 
-SEED = 42
+seed = 42
 
 if __name__ == "__main__":
-    np.random.seed(SEED)
+    np.random.seed(seed)
     data_dir = pathlib.Path("data/ph/q5")
     data_dir.mkdir(parents=True, exist_ok=True)
     pharmacokinetics_tolerances = [0.25, 0.7, 1]

@@ -41,7 +41,7 @@ class Normal(Model):
         return stats.norm.pdf(x, self.mu, self.sigma)
 
 class LogNormal(Model):
-    def __init__(self, mu, sigma):
+    def __init__(self, mu=0, sigma=1):
         self.mu = mu
         self.sigma = sigma
     
@@ -55,12 +55,14 @@ def run_abc_rejection(N, observed_data, prior_model, generate_data, compute_disc
     sample = []
     num_tries = 0
 
-    while len(sample) < N:
-        num_tries += 1
-        theta = prior_model.sample()
-        generated_data = generate_data(theta, len(observed_data))
-        if compute_discrepancy(observed_data, generated_data) < tolerance:
-            sample.append(theta)
+    with tqdm(total=N, desc="Generating samples") as pbar:
+        while len(sample) < N:
+            num_tries += 1
+            theta = prior_model.sample()
+            generated_data = generate_data(theta, len(observed_data))
+            if compute_discrepancy(observed_data, generated_data) < tolerance:
+                sample.append(theta)
+                pbar.update(1)
     
     return sample, N / num_tries
 
@@ -108,5 +110,5 @@ def run_euler_maruyama(sampling_times, model, x_0=0, dt=0.01, debug=False):
 
     return sample
 
-def weighted_euclidean_norm(x, weights):
+def weighted_euclidean_norm(x, weights=1):
     return np.sqrt(np.sum(np.square(x)/np.square(weights)))
