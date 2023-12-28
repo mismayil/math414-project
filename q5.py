@@ -13,7 +13,7 @@ if __name__ == "__main__":
     data_dir = pathlib.Path("data/ph/q5")
     data_dir.mkdir(parents=True, exist_ok=True)
     pharmacokinetics_tolerances = [0.25, 0.7, 1]
-    pharmacokinetics_N = 100
+    pharmacokinetics_N = 10000
     theta_0 = [1.15, 0.07, 0.05, 0.33]
     pharmacokinetics_samples = []
 

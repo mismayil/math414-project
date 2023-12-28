@@ -89,10 +89,10 @@ class PharmacokineticProposalModel(Model):
     def pdf(self, x):
         return stats.norm.pdf(x[0], self.k_a_mean, self.k_a_cov) * stats.norm.pdf(x[1], self.k_e_mean, self.k_e_cov) * stats.norm.pdf(x[2], self.cl_mean, self.cl_cov) * stats.norm.pdf(x[3], self.sigma_mean, self.sigma_cov)
 
-def make_pharmacokinetic_proposal_model(theta, theta_history):
+def make_pharmacokinetic_proposal_model(theta, theta_history, window_size=100):
     if len(theta_history) == 0:
         return PharmacokineticProposalModel(np.array([theta]))
-    return PharmacokineticProposalModel(np.vstack([theta_history, theta]))
+    return PharmacokineticProposalModel(np.vstack([theta_history[-window_size:], theta]))
     
 def compute_pharmacokinetics_discrepancy(coefficients, theta_0, observed_data, generated_data):
     s_observed_data = np.dot(coefficients, np.hstack([[1], observed_data]).reshape(-1, 1))
