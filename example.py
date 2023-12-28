@@ -58,7 +58,7 @@ class ExampleProposalModel(Model):
     def pdf(self, x):
         return stats.norm.pdf(x, self.theta, self.sigma)
 
-def make_example_proposal_model(theta, sigma=np.sqrt(0.1)):
+def make_example_proposal_model(theta, sigma=np.sqrt(0.1), *args, **kwargs):
     return ExampleProposalModel(theta, sigma)
 
 def generate_example_data(theta, size):

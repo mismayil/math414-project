@@ -73,11 +73,11 @@ def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_da
 
     for i in tqdm(range(burn_in_size+N), desc="Generating samples"):
         current_theta = sample[-1]
-        current_proposal_model = make_proposal_model(current_theta)
+        current_proposal_model = make_proposal_model(current_theta, sample[:-1])
         new_theta = current_proposal_model.sample()
-        new_proposal_model = make_proposal_model(new_theta)
+        new_proposal_model = make_proposal_model(new_theta, sample)
         generated_data = generate_data(new_theta, len(observed_data))  
-        
+
         if compute_discrepancy(observed_data, generated_data) < tolerance:
             alpha = min(1, (prior_model.pdf(new_theta) * new_proposal_model.pdf(current_theta)) / (prior_model.pdf(current_theta) * current_proposal_model.pdf(new_theta)))
             prob = stats.uniform.rvs(0, 1)
