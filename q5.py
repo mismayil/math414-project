@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 from functools import partial
 import pathlib
+import json
 
 from utils import run_abc_mcmc
 from pharmacokinetics import make_phk_random_walk_proposal_model, make_phk_adaptive_proposal_model, compute_phk_discrepancy, generate_phk_data, PHKPriorModel, train_size
@@ -13,7 +14,7 @@ if __name__ == "__main__":
     data_dir = pathlib.Path("data/ph/q5")
     data_dir.mkdir(parents=True, exist_ok=True)
     phk_tolerances = [0.25, 0.7, 1]
-    phk_N = 10000
+    phk_N = 10
     theta_0 = [1.15, 0.07, 0.05, 0.33]
     phk_samples = []
     burn_in = 0.1
@@ -40,7 +41,16 @@ if __name__ == "__main__":
                                                 burn_in=burn_in)
         print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
         phk_samples.append(sample)
-        np.save(data_dir / f"ph_rw_[tol={tolerance}]_[N={phk_N}].npy", sample)
+        file_stem = f"ph_rw_[tol={tolerance}]_[N={phk_N}]"
+        np.save(data_dir / f"{file_stem}.npy", sample)
+        metadata = {
+            "tolerance": tolerance,
+            "phk_N": phk_N,
+            "burn_in": burn_in,
+            "acceptance_rate": acceptance_rate
+        }
+        with open(data_dir / f"{file_stem}.json", "w") as f:
+            json.dump(metadata, f, indent=4)
 
     # # Run ABC-MCMC with adaptive proposal
     # for tolerance in phk_tolerances:

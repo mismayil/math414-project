@@ -1,5 +1,6 @@
 import numpy as np
 import pathlib
+import json
 
 from utils import Normal, run_abc_rejection, plot_samples
 from example import ExamplePosteriorModel, generate_example_data, compute_example_discrepancy, example_sigma, example_M, example_mean, example_a, example_sigma_1, example_N, example_tolerances
@@ -22,6 +23,19 @@ if __name__ == "__main__":
         sample, acceptance_rate = run_abc_rejection(example_N, observed_data, prior_model, generate_example_data, compute_example_discrepancy, tolerance)
         print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
         tolerance_samples.append(sample)
-        np.save(data_dir / f"ex_q1_[tol={tolerance}]_[N={example_N}].npy", sample)
+        file_stem = f"ex_q1_[tol={tolerance}]_[N={example_N}]"
+        np.save(data_dir / f"{file_stem}.npy", sample)
+        metadata = {
+            "tolerance": tolerance,
+            "N": example_N,
+            "M": example_M,
+            "a": example_a,
+            "sigma": example_sigma,
+            "sigma_1": example_sigma_1,
+            "data_mean": example_mean,
+            "acceptance_rate": acceptance_rate
+        }
+        with open(data_dir / f"{file_stem}.json", "w") as f:
+            json.dump(metadata, f, indent=4)
 
     plot_samples(tolerance_samples, posterior_model, example_tolerances, set_log=True, set_ylim=1e-6)
