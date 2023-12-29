@@ -46,10 +46,10 @@ class LogNormal(Model):
         self.sigma = sigma
     
     def sample(self, size=None):
-        return np.exp(stats.norm.rvs(loc=self.mu, scale=self.sigma, size=size))
+        return stats.lognorm.rvs(loc=self.mu, scale=self.sigma, size=size)
 
     def pdf(self, x):
-        return np.exp(stats.norm.pdf(x, self.mu, self.sigma))
+        return stats.lognorm.pdf(x, self.mu, self.sigma)
 
 def run_abc_rejection(N, observed_data, prior_model, generate_data, compute_discrepancy, tolerance=0.1):
     sample = []

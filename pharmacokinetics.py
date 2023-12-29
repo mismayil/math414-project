@@ -48,8 +48,8 @@ class PharmacokineticPriorModel(Model):
     def pdf(self, x):
         return self.prior_K_a.pdf(x[0]) * self.prior_K_e.pdf(x[1]) * self.prior_Cl.pdf(x[2]) * self.prior_sigma.pdf(x[3])
 
-def compute_cov(history, c_0, t=0, s_d=1, eps=0.001, cache=None):
-    if t <= 1:
+def compute_cov(history, c_0, t=0, t_0=1, s_d=1, eps=0.001, cache=None):
+    if t <= t_0:
         return np.array(c_0)
     
     if cache and t in cache:
@@ -58,7 +58,7 @@ def compute_cov(history, c_0, t=0, s_d=1, eps=0.001, cache=None):
     x_bar_t_minus_1 = np.mean(history[:t-1], axis=0).reshape(-1, 1)
     x_bar_t = np.mean(history[:t], axis=0).reshape(-1, 1)
     x_t = history[t-1].reshape(-1, 1)
-    c_t = ((t-1)/t) * compute_cov(history, c_0, t-1, s_d, eps) + (s_d/t) * (t * np.dot(x_bar_t_minus_1, x_bar_t_minus_1.T) - (t+1) * np.dot(x_bar_t, x_bar_t.T) + np.dot(x_t, x_t.T)) + eps * np.eye(len(x_t))
+    c_t = ((t-2)/(t-1)) * compute_cov(history, c_0, t-1, t_0, s_d, eps) + (s_d/(t-1)) * ((t-1) * np.dot(x_bar_t_minus_1, x_bar_t_minus_1.T) - t * np.dot(x_bar_t, x_bar_t.T) + np.dot(x_t, x_t.T)) + eps * np.eye(len(x_t))
     
     if cache:
         cache[t] = c_t
@@ -66,33 +66,35 @@ def compute_cov(history, c_0, t=0, s_d=1, eps=0.001, cache=None):
     return c_t
 
 class PharmacokineticProposalModel(Model):
-    def __init__(self, theta_history, s_d=2.4*2.4, eps=0.001):
+    def __init__(self, theta_history, t_0=1, s_d=2.4*2.4, eps=0.001):
         self.s_d = s_d
         self.eps = eps
+        self.t_0 = t_0
         self.mean = theta_history[-1]
         self.k_a_mean = self.mean[0]
         self.k_e_mean = self.mean[1]
         self.cl_mean = self.mean[2]
         self.sigma_mean = self.mean[3]
-        self.k_a_cov = compute_cov(theta_history[:, 0], c_0=0.4, t=len(theta_history), s_d=self.s_d, eps=self.eps).item()
-        self.k_e_cov = compute_cov(theta_history[:, 1], c_0=0.6, t=len(theta_history), s_d=self.s_d, eps=self.eps).item()
-        self.cl_cov = compute_cov(theta_history[:, 2], c_0=0.8, t=len(theta_history), s_d=self.s_d, eps=self.eps).item()
-        self.sigma_cov = compute_cov(theta_history[:, 3], c_0=0.3, t=len(theta_history), s_d=self.s_d, eps=self.eps).item()
+        self.k_a_cov = compute_cov(theta_history[:, 0], c_0=np.square(0.4), t=len(theta_history), t_0=t_0, s_d=self.s_d, eps=self.eps).item()
+        self.k_e_cov = compute_cov(theta_history[:, 1], c_0=np.square(0.6), t=len(theta_history), t_0=t_0, s_d=self.s_d, eps=self.eps).item()
+        self.cl_cov = compute_cov(theta_history[:, 2], c_0=np.square(0.8), t=len(theta_history), t_0=t_0, s_d=self.s_d, eps=self.eps).item()
+        self.sigma_cov = compute_cov(theta_history[:, 3], c_0=np.square(0.3), t=len(theta_history), t_0=t_0, s_d=self.s_d, eps=self.eps).item()
+        self.k_a_model = LogNormal(np.log(self.k_a_mean), np.sqrt(self.k_a_cov))
+        self.k_e_model = LogNormal(np.log(self.k_e_mean), np.sqrt(self.k_e_cov))
+        self.cl_model = LogNormal(np.log(self.cl_mean), np.sqrt(self.cl_cov))
+        self.sigma_model = LogNormal(np.log(self.sigma_mean), np.sqrt(self.sigma_cov))
         self.d = 1
 
     def sample(self, size=None):
-        return [stats.norm.rvs(self.k_a_mean, self.k_a_cov, size=size), 
-                stats.norm.rvs(self.k_e_mean, self.k_e_cov, size=size), 
-                stats.norm.rvs(self.cl_mean, self.cl_cov, size=size), 
-                stats.norm.rvs(self.sigma_mean, self.sigma_cov, size=size)]
+        return [self.k_a_model.sample(), self.k_e_model.sample(), self.cl_model.sample(), self.sigma_model.sample()]
 
     def pdf(self, x):
-        return stats.norm.pdf(x[0], self.k_a_mean, self.k_a_cov) * stats.norm.pdf(x[1], self.k_e_mean, self.k_e_cov) * stats.norm.pdf(x[2], self.cl_mean, self.cl_cov) * stats.norm.pdf(x[3], self.sigma_mean, self.sigma_cov)
+        return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
 
-def make_pharmacokinetic_proposal_model(theta, theta_history, window_size=100):
+def make_pharmacokinetic_proposal_model(theta, theta_history, t_0=1, window_size=100):
     if len(theta_history) == 0:
-        return PharmacokineticProposalModel(np.array([theta]))
-    return PharmacokineticProposalModel(np.vstack([theta_history[-window_size:], theta]))
+        return PharmacokineticProposalModel(theta_history=np.array([theta]), t_0=t_0)
+    return PharmacokineticProposalModel(theta_history=np.vstack([theta_history[-window_size:], theta]), t_0=t_0)
     
 def compute_pharmacokinetics_discrepancy(coefficients, theta_0, observed_data, generated_data):
     s_observed_data = np.dot(coefficients, np.hstack([[1], observed_data]).reshape(-1, 1))
