@@ -16,6 +16,7 @@ if __name__ == "__main__":
     pharmacokinetics_N = 10000
     theta_0 = [1.15, 0.07, 0.05, 0.33]
     pharmacokinetics_samples = []
+    burn_in = 0.1
 
     observed_data = np.load("data/ph/q4/ph_observed_data.npy")
     
@@ -30,12 +31,13 @@ if __name__ == "__main__":
     for tolerance in pharmacokinetics_tolerances:
         sample, acceptance_rate = run_abc_mcmc(pharmacokinetics_N, 
                                                 observed_data, 
-                                                make_pharmacokinetic_proposal_model, 
+                                                partial(make_pharmacokinetic_proposal_model, t_0=int(pharmacokinetics_N*burn_in), window_size=100), 
                                                 pharmacokinetic_prior_model, 
                                                 generate_pharmacokinetics_data, 
                                                 partial(compute_pharmacokinetics_discrepancy, coefficients, theta_0), 
                                                 tolerance,
-                                                theta_0=theta_0)
+                                                theta_0=theta_0,
+                                                burn_in=burn_in)
         print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
         pharmacokinetics_samples.append(sample)
         np.save(data_dir / f"ph_[tol={tolerance}]_[N={pharmacokinetics_N}].npy", sample)

@@ -33,23 +33,25 @@ class Normal(Model):
     def __init__(self, mu=0, sigma=1):
         self.mu = mu
         self.sigma = sigma
+        self.dist = stats.norm(self.mu, self.sigma)
     
     def sample(self, size=None):
-        return stats.norm.rvs(self.mu, self.sigma, size=size)
+        return self.dist.rvs(size=size)
 
     def pdf(self, x):
-        return stats.norm.pdf(x, self.mu, self.sigma)
+        return self.dist.pdf(x)
 
 class LogNormal(Model):
     def __init__(self, mu=0, sigma=1):
         self.mu = mu
         self.sigma = sigma
+        self.dist = stats.lognorm(s=self.sigma, scale=np.exp(self.mu))
     
     def sample(self, size=None):
-        return stats.lognorm.rvs(loc=self.mu, scale=self.sigma, size=size)
+        return self.dist.rvs(size=size)
 
     def pdf(self, x):
-        return stats.lognorm.pdf(x, self.mu, self.sigma)
+        return self.dist.pdf(x)
 
 def run_abc_rejection(N, observed_data, prior_model, generate_data, compute_discrepancy, tolerance=0.1):
     sample = []

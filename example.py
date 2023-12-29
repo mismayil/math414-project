@@ -18,14 +18,16 @@ class ExampleLikelihoodModel(Model):
         self.a = a
         self.sigma = sigma
         self.p = p
+        self.dist1 = stats.norm(loc=self.theta, scale=self.sigma)
+        self.dist2 = stats.norm(loc=self.theta+self.a, scale=self.sigma)
     
     def sample(self, size=None):
         prob = stats.uniform.rvs(0, 1)
 
         if prob < self.p:
-            return stats.norm.rvs(self.theta, self.sigma, size=size)
+            return self.dist1.rvs(size=size)
 
-        return stats.norm.rvs(self.theta+self.a, self.sigma, size=size)
+        return self.dist2.rvs(size=size)
 
     def pdf(self, x):
         return NotImplementedError
@@ -51,12 +53,13 @@ class ExampleProposalModel(Model):
     def __init__(self, theta, sigma):
         self.theta = theta
         self.sigma = sigma
+        self.dist = stats.norm(loc=self.theta, scale=self.sigma)
     
     def sample(self, size=None):
-        return stats.norm.rvs(self.theta, self.sigma, size=size)
+        return self.dist.rvs(size=size)
 
     def pdf(self, x):
-        return stats.norm.pdf(x, self.theta, self.sigma)
+        return self.dist.pdf(x)
 
 def make_example_proposal_model(theta, sigma=np.sqrt(0.1), *args, **kwargs):
     return ExampleProposalModel(theta, sigma)
