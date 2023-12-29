@@ -2,7 +2,7 @@ from utils import Model
 import scipy.stats as stats
 import numpy as np
 
-from utils import LogNormal,weighted_euclidean_norm, run_euler_maruyama
+from utils import LogNormal, weighted_euclidean_norm, run_euler_maruyama
 
 sampling_dt = 0.005
 sampling_times = [0.25, 0.5, 1, 2, 3.5, 5, 7, 9, 12]
@@ -19,7 +19,7 @@ class BrownianMotion(Model):
     def pdf(self, x):
         return NotImplementedError
 
-class PharmacokineticModel(Model):
+class PHKModel(Model):
     def __init__(self, D, K_a, K_e, Cl, sigma=1, dt=0.01):
         self.D = D
         self.K_a = K_a
@@ -35,7 +35,7 @@ class PharmacokineticModel(Model):
     def pdf(self, x):
         return NotImplementedError
 
-class PharmacokineticPriorModel(Model):
+class PHKPriorModel(Model):
     def __init__(self):
         self.prior_K_a = LogNormal(0.14, 0.4)
         self.prior_K_e = LogNormal(-2.7, 0.6)
@@ -65,7 +65,20 @@ def compute_cov(history, c_0, t=0, t_0=1, s_d=1, eps=0.001, cache=None):
 
     return c_t
 
-class PharmacokineticProposalModel(Model):
+class PHKRandomWalkProposalModel(Model):
+    def __init__(self, theta):
+        self.k_a_model = LogNormal(np.log(theta[0]), 0.4)
+        self.k_e_model = LogNormal(np.log(theta[1]), 0.6)
+        self.cl_model = LogNormal(np.log(theta[2]), 0.8)
+        self.sigma_model = LogNormal(np.log(theta[3]), 0.3)
+    
+    def sample(self, size=None):
+        return [self.k_a_model.sample(), self.k_e_model.sample(), self.cl_model.sample(), self.sigma_model.sample()]
+
+    def pdf(self, x):
+        return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
+
+class PHKAdaptiveProposalModel(Model):
     def __init__(self, theta_history, t_0=1, s_d=2.4*2.4, eps=0.001):
         self.s_d = s_d
         self.eps = eps
@@ -91,16 +104,19 @@ class PharmacokineticProposalModel(Model):
     def pdf(self, x):
         return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
 
-def make_pharmacokinetic_proposal_model(theta, theta_history, t_0=1, window_size=100):
+def make_phk_random_walk_proposal_model(theta, **kwargs):
+    return PHKRandomWalkProposalModel(theta)
+
+def make_phk_adaptive_proposal_model(theta, theta_history, t_0=1, window_size=100):
     if len(theta_history) == 0:
-        return PharmacokineticProposalModel(theta_history=np.array([theta]), t_0=t_0)
-    return PharmacokineticProposalModel(theta_history=np.vstack([theta_history[-window_size:], theta]), t_0=t_0)
+        return PHKAdaptiveProposalModel(theta_history=np.array([theta]), t_0=t_0)
+    return PHKAdaptiveProposalModel(theta_history=np.vstack([theta_history[-window_size:], theta]), t_0=t_0)
     
-def compute_pharmacokinetics_discrepancy(coefficients, theta_0, observed_data, generated_data):
+def compute_phk_discrepancy(coefficients, theta_0, observed_data, generated_data):
     s_observed_data = np.dot(coefficients, np.hstack([[1], observed_data]).reshape(-1, 1))
     s_generated_data = np.dot(coefficients, np.hstack([[1], generated_data]).reshape(-1, 1))
     return weighted_euclidean_norm(s_generated_data - s_observed_data, weights=theta_0)
 
-def generate_pharmacokinetics_data(theta, size):
-    pharmacokinetic_model = PharmacokineticModel(D=4, K_a=theta[0], K_e=theta[1], Cl=theta[2], sigma=theta[3], dt=sampling_dt)
-    return run_euler_maruyama(sampling_times, pharmacokinetic_model, dt=sampling_dt)
+def generate_phk_data(theta, size):
+    phk_model = PHKModel(D=4, K_a=theta[0], K_e=theta[1], Cl=theta[2], sigma=theta[3], dt=sampling_dt)
+    return run_euler_maruyama(sampling_times, phk_model, dt=sampling_dt)

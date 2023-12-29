@@ -4,7 +4,7 @@ from functools import partial
 import pathlib
 
 from utils import run_abc_mcmc
-from pharmacokinetics import make_pharmacokinetic_proposal_model, compute_pharmacokinetics_discrepancy, generate_pharmacokinetics_data, PharmacokineticPriorModel, train_size
+from pharmacokinetics import make_phk_random_walk_proposal_model, make_phk_adaptive_proposal_model, compute_phk_discrepancy, generate_phk_data, PHKPriorModel, train_size
 
 seed = 42
 
@@ -12,10 +12,10 @@ if __name__ == "__main__":
     np.random.seed(seed)
     data_dir = pathlib.Path("data/ph/q5")
     data_dir.mkdir(parents=True, exist_ok=True)
-    pharmacokinetics_tolerances = [0.25, 0.7, 1]
-    pharmacokinetics_N = 10000
+    phk_tolerances = [0.25, 0.7, 1]
+    phk_N = 10000
     theta_0 = [1.15, 0.07, 0.05, 0.33]
-    pharmacokinetics_samples = []
+    phk_samples = []
     burn_in = 0.1
 
     observed_data = np.load("data/ph/q4/ph_observed_data.npy")
@@ -26,18 +26,33 @@ if __name__ == "__main__":
     sigma_model = pickle.load(open(f"data/ph/q4/ph_sigma_model_[size={train_size}].pkl", "rb"))
     coefficients = np.vstack([k_a_model.params, k_e_model.params, cl_model.params, sigma_model.params])
     
-    pharmacokinetic_prior_model = PharmacokineticPriorModel()
+    phk_prior_model = PHKPriorModel()
 
-    for tolerance in pharmacokinetics_tolerances:
-        sample, acceptance_rate = run_abc_mcmc(pharmacokinetics_N, 
+    for tolerance in phk_tolerances:
+        sample, acceptance_rate = run_abc_mcmc(phk_N, 
                                                 observed_data, 
-                                                partial(make_pharmacokinetic_proposal_model, t_0=int(pharmacokinetics_N*burn_in), window_size=100), 
-                                                pharmacokinetic_prior_model, 
-                                                generate_pharmacokinetics_data, 
-                                                partial(compute_pharmacokinetics_discrepancy, coefficients, theta_0), 
+                                                make_phk_random_walk_proposal_model, 
+                                                phk_prior_model, 
+                                                generate_phk_data, 
+                                                partial(compute_phk_discrepancy, coefficients, theta_0), 
                                                 tolerance,
                                                 theta_0=theta_0,
                                                 burn_in=burn_in)
         print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
-        pharmacokinetics_samples.append(sample)
-        np.save(data_dir / f"ph_[tol={tolerance}]_[N={pharmacokinetics_N}].npy", sample)
+        phk_samples.append(sample)
+        np.save(data_dir / f"ph_rw_[tol={tolerance}]_[N={phk_N}].npy", sample)
+
+    # # Run ABC-MCMC with adaptive proposal
+    # for tolerance in phk_tolerances:
+    #     sample, acceptance_rate = run_abc_mcmc(phk_N, 
+    #                                             observed_data, 
+    #                                             partial(make_phk_adaptive_proposal_model, t_0=int(phk_N*burn_in), window_size=100), 
+    #                                             phk_prior_model, 
+    #                                             generate_phk_data, 
+    #                                             partial(compute_phk_discrepancy, coefficients, theta_0), 
+    #                                             tolerance,
+    #                                             theta_0=theta_0,
+    #                                             burn_in=burn_in)
+    #     print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
+    #     phk_samples.append(sample)
+    #     np.save(data_dir / f"ph_adaptive_[tol={tolerance}]_[N={phk_N}].npy", sample)
