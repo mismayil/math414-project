@@ -14,7 +14,7 @@ if __name__ == "__main__":
     data_dir = pathlib.Path("data/ph/q5")
     data_dir.mkdir(parents=True, exist_ok=True)
     phk_tolerances = [0.25, 0.7, 1]
-    phk_N = 10
+    phk_N = 10000
     theta_0 = [1.15, 0.07, 0.05, 0.33]
     phk_samples = []
     burn_in = 0.1

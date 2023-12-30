@@ -1,0 +1,6 @@
+{
+    "tolerance": 0.25,
+    "phk_N": 10000,
+    "burn_in": 0.1,
+    "acceptance_rate": 9.09090909090909e-05
+}
