@@ -29,6 +29,7 @@ if __name__ == "__main__":
     
     phk_prior_model = PHKPriorModel()
 
+    # Run ABC-MCMC with random walk proposal
     for tolerance in phk_tolerances:
         sample, acceptance_rate = run_abc_mcmc(phk_N, 
                                                 observed_data, 
