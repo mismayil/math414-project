@@ -2,7 +2,7 @@ from utils import Model
 import scipy.stats as stats
 import numpy as np
 
-from utils import LogNormal, weighted_euclidean_norm, run_euler_maruyama
+from utils import Normal, LogNormal, MultivariateNormal, weighted_euclidean_norm, run_euler_maruyama
 
 sampling_dt = 0.005
 sampling_times = [0.25, 0.5, 1, 2, 3.5, 5, 7, 9, 12]
@@ -76,6 +76,29 @@ class PHKRandomWalkProposalModel(Model):
     def pdf(self, x):
         return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
 
+class PHKRandomWalkNormalProposalModel(Model):
+    def __init__(self, theta):
+        self.k_a_model = Normal(np.log(theta[0]), 0.4)
+        self.k_e_model = Normal(np.log(theta[1]), 0.6)
+        self.cl_model = Normal(np.log(theta[2]), 0.8)
+        self.sigma_model = Normal(np.log(theta[3]), 0.3)
+    
+    def sample(self, size=None):
+        return [np.exp(self.k_a_model.sample()), np.exp(self.k_e_model.sample()), np.exp(self.cl_model.sample()), np.exp(self.sigma_model.sample())]
+
+    def pdf(self, x):
+        return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
+
+class PHKRandomWalkMultiNormalProposalModel(Model):
+    def __init__(self, theta):
+        self.model = MultivariateNormal(np.log(theta), np.diag([0.4, 0.6, 0.8, 0.3]))
+    
+    def sample(self, size=None):
+        return np.exp(self.model.sample(size=size))
+
+    def pdf(self, x):
+        return self.model.pdf(x)
+
 class PHKAdaptiveProposalModel(Model):
     def __init__(self, theta_history, t_0=1, s_d=2.4*2.4, eps=0.001):
         self.s_d = s_d
@@ -105,6 +128,12 @@ class PHKAdaptiveProposalModel(Model):
 def make_phk_random_walk_proposal_model(theta, **kwargs):
     return PHKRandomWalkProposalModel(theta)
 
+def make_phk_random_walk_normal_proposal_model(theta, **kwargs):
+    return PHKRandomWalkNormalProposalModel(theta)
+
+def make_phk_random_walk_multi_normal_proposal_model(theta, **kwargs):
+    return PHKRandomWalkMultiNormalProposalModel(theta)
+
 def make_phk_adaptive_proposal_model(theta, theta_history, t_0=1, window_size=100):
     if len(theta_history) == 0:
         return PHKAdaptiveProposalModel(theta_history=np.array([theta]), t_0=t_0)
@@ -113,8 +142,8 @@ def make_phk_adaptive_proposal_model(theta, theta_history, t_0=1, window_size=10
 def compute_phk_discrepancy(coefficients, theta_0, observed_data, generated_data):
     s_observed_data = np.dot(coefficients, np.hstack([[1], observed_data]).reshape(-1, 1))
     s_generated_data = np.dot(coefficients, np.hstack([[1], generated_data]).reshape(-1, 1))
-    return weighted_euclidean_norm(s_generated_data - s_observed_data, weights=theta_0)
+    return weighted_euclidean_norm(s_generated_data - s_observed_data, weights=np.array(theta_0).reshape(-1, 1))
 
 def generate_phk_data(theta, size):
-    phk_model = PHKModel(D=4, K_a=theta[0], K_e=theta[1], Cl=theta[2], sigma=theta[3], dt=sampling_dt)
+    phk_model = PHKModel(D=drug_dose, K_a=theta[0], K_e=theta[1], Cl=theta[2], sigma=theta[3], dt=sampling_dt)
     return run_euler_maruyama(sampling_times, phk_model, dt=sampling_dt)

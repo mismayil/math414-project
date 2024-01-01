@@ -5,7 +5,7 @@ import pathlib
 import json
 
 from utils import run_abc_mcmc
-from pharmacokinetics import make_phk_random_walk_proposal_model, make_phk_adaptive_proposal_model, compute_phk_discrepancy, generate_phk_data, PHKPriorModel, train_size
+from pharmacokinetics import make_phk_random_walk_proposal_model, make_phk_random_walk_normal_proposal_model, make_phk_random_walk_multi_normal_proposal_model, compute_phk_discrepancy, generate_phk_data, PHKPriorModel, train_size
 
 seed = 42
 

@@ -51,6 +51,18 @@ class LogNormal(Model):
     def pdf(self, x):
         return self.dist.pdf(x)
 
+class MultivariateNormal(Model):
+    def __init__(self, mu, cov):
+        self.mu = mu
+        self.cov = cov
+        self.dist = stats.multivariate_normal(self.mu, self.cov)
+    
+    def sample(self, size=None):
+        return self.dist.rvs(size=size)
+
+    def pdf(self, x):
+        return self.dist.pdf(x)
+    
 def run_abc_rejection(N, observed_data, prior_model, generate_data, compute_discrepancy, tolerance=0.1):
     sample = []
     num_tries = 0
