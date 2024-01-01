@@ -21,13 +21,11 @@ def plot_samples(samples, posterior_model, tolerances, set_log=True, set_ylim=No
     plt.show()
 
 class Model(ABC):
-    @abstractmethod
     def sample(self, size=None, *args, **kwargs):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def pdf(self, x):
-        pass
+        raise NotImplementedError
 
 class Normal(Model):
     def __init__(self, mu=0, sigma=1):

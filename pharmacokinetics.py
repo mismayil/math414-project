@@ -6,18 +6,19 @@ from utils import LogNormal, weighted_euclidean_norm, run_euler_maruyama
 
 sampling_dt = 0.005
 sampling_times = [0.25, 0.5, 1, 2, 3.5, 5, 7, 9, 12]
-train_size = 500
+train_size = 1000
 drug_dose = 4
 
 class BrownianMotion(Model):
     def __init__(self, dt=0.01) -> None:
         self.dt = dt
+        self.dist = stats.norm(0, np.sqrt(self.dt))
 
     def sample(self, size=None):
-        return stats.norm.rvs(0, np.sqrt(self.dt), size=size)
+        return self.dist.rvs(size=size)
     
     def pdf(self, x):
-        return NotImplementedError
+        return self.dist.pdf(x)
 
 class PHKModel(Model):
     def __init__(self, D, K_a, K_e, Cl, sigma=1, dt=0.01):
@@ -31,9 +32,6 @@ class PHKModel(Model):
     
     def sample(self, size=None, x_t=0, t=0.01):
         return ((self.D * self.K_a * self.K_e * np.exp(-self.K_a * t))/self.Cl - self.K_e * x_t) * self.dt + self.sigma * self.brownian.sample(size=size)
-
-    def pdf(self, x):
-        return NotImplementedError
 
 class PHKPriorModel(Model):
     def __init__(self):

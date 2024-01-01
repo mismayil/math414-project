@@ -29,9 +29,6 @@ class ExampleLikelihoodModel(Model):
 
         return self.dist2.rvs(size=size)
 
-    def pdf(self, x):
-        return NotImplementedError
-
 class ExamplePosteriorModel(Model):
     def __init__(self, M, mean, a, sigma, sigma_1):
         self.a = a
@@ -42,9 +39,6 @@ class ExamplePosteriorModel(Model):
         self.alpha = 1 / (1 + np.exp(a * (mean - a/2) * (self.M / (self.M*sigma**2 + sigma_1**2))))
         self.normal_1 = Normal((sigma**2 / (sigma**2 + sigma_1**2/self.M)) * mean, sigma_1**2/(self.M + sigma_1**2/sigma**2))
         self.normal_2 = Normal((sigma**2 / (sigma**2 + sigma_1**2/self.M)) * (mean-a), sigma_1**2/(self.M + sigma_1**2/sigma**2))
-    
-    def sample(self, size=None):
-        return NotImplementedError
     
     def pdf(self, x):
         return self.alpha * self.normal_1.pdf(x) + (1-self.alpha) * self.normal_2.pdf(x)
