@@ -78,23 +78,25 @@ def run_abc_rejection(N, observed_data, prior_model, generate_data, compute_disc
     
     return sample, N / num_tries
 
-def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_data, compute_discrepancy, tolerance=0.1, theta_0=0, burn_in=0.1):
+def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_data, compute_discrepancy, tolerance=0.1, theta_0=0, burn_in=0.1, data_0=0):
     sample = [theta_0]
+    sample_data = [data_0]
     num_accepted = 0
     burn_in_size = int(N * burn_in)
 
     for i in tqdm(range(burn_in_size+N), desc="Generating samples"):
         current_theta = sample[-1]
-        current_proposal_model = make_proposal_model(theta=current_theta, theta_history=sample[:-1])
+        current_proposal_model = make_proposal_model(theta=current_theta, data=sample_data[-1], theta_history=sample[:-1])
         new_theta = current_proposal_model.sample()
-        new_proposal_model = make_proposal_model(theta=new_theta, theta_history=sample)
-        generated_data = generate_data(new_theta, len(observed_data))  
+        generated_data = generate_data(new_theta, len(observed_data))
+        new_proposal_model = make_proposal_model(theta=new_theta, data=generated_data, theta_history=sample) 
 
         if compute_discrepancy(observed_data, generated_data) < tolerance:
             alpha = min(1, (prior_model.pdf(new_theta) * new_proposal_model.pdf(current_theta)) / (prior_model.pdf(current_theta) * current_proposal_model.pdf(new_theta)))
             prob = stats.uniform.rvs(0, 1)
             if prob < alpha:
                 sample.append(new_theta)
+                sample_data.append(generated_data)
                 num_accepted += 1
             else:
                 sample.append(current_theta)

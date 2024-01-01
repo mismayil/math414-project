@@ -52,18 +52,3 @@ if __name__ == "__main__":
         }
         with open(data_dir / f"{file_stem}.json", "w") as f:
             json.dump(metadata, f, indent=4)
-
-    # # Run ABC-MCMC with adaptive proposal
-    # for tolerance in phk_tolerances:
-    #     sample, acceptance_rate = run_abc_mcmc(phk_N, 
-    #                                             observed_data, 
-    #                                             partial(make_phk_adaptive_proposal_model, t_0=int(phk_N*burn_in), window_size=100), 
-    #                                             phk_prior_model, 
-    #                                             generate_phk_data, 
-    #                                             partial(compute_phk_discrepancy, coefficients, theta_0), 
-    #                                             tolerance,
-    #                                             theta_0=theta_0,
-    #                                             burn_in=burn_in)
-    #     print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
-    #     phk_samples.append(sample)
-    #     np.save(data_dir / f"ph_adaptive_[tol={tolerance}]_[N={phk_N}].npy", sample)

@@ -99,6 +99,25 @@ class PHKRandomWalkMultiNormalProposalModel(Model):
     def pdf(self, x):
         return self.model.pdf(x)
 
+def compute_expected_theta(coefficients, data):
+    return np.dot(coefficients, np.hstack([[1], data]).reshape(-1, 1)).squeeze()
+
+class PHKDataDrivenProposalModel(Model):
+    def __init__(self, coefficients, data):
+        self.coefficients = coefficients
+        self.data = data
+        self.theta = compute_expected_theta(coefficients, data)
+        self.k_a_model = LogNormal(np.log(self.theta[0]), 0.4)
+        self.k_e_model = LogNormal(np.log(self.theta[1]), 0.6)
+        self.cl_model = LogNormal(np.log(self.theta[2]), 0.8)
+        self.sigma_model = LogNormal(np.log(self.theta[3]), 0.3)
+
+    def sample(self, size=None):
+        return [self.k_a_model.sample(), self.k_e_model.sample(), self.cl_model.sample(), self.sigma_model.sample()]
+
+    def pdf(self, x):
+        return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
+
 class PHKAdaptiveProposalModel(Model):
     def __init__(self, theta_history, t_0=1, s_d=2.4*2.4, eps=0.001):
         self.s_d = s_d
@@ -134,15 +153,18 @@ def make_phk_random_walk_normal_proposal_model(theta, **kwargs):
 def make_phk_random_walk_multi_normal_proposal_model(theta, **kwargs):
     return PHKRandomWalkMultiNormalProposalModel(theta)
 
+def make_phk_data_driven_proposal_model(coefficients, theta, data, **kwargs):
+    return PHKDataDrivenProposalModel(coefficients, data)
+
 def make_phk_adaptive_proposal_model(theta, theta_history, t_0=1, window_size=100):
     if len(theta_history) == 0:
         return PHKAdaptiveProposalModel(theta_history=np.array([theta]), t_0=t_0)
     return PHKAdaptiveProposalModel(theta_history=np.vstack([theta_history[-window_size:], theta]), t_0=t_0)
-    
+
 def compute_phk_discrepancy(coefficients, theta_0, observed_data, generated_data):
-    s_observed_data = np.dot(coefficients, np.hstack([[1], observed_data]).reshape(-1, 1))
-    s_generated_data = np.dot(coefficients, np.hstack([[1], generated_data]).reshape(-1, 1))
-    return weighted_euclidean_norm(s_generated_data - s_observed_data, weights=np.array(theta_0).reshape(-1, 1))
+    s_observed_data = compute_expected_theta(coefficients, observed_data)
+    s_generated_data = compute_expected_theta(coefficients, generated_data)
+    return weighted_euclidean_norm(s_generated_data - s_observed_data, weights=np.array(theta_0))
 
 def generate_phk_data(theta, size):
     phk_model = PHKModel(D=drug_dose, K_a=theta[0], K_e=theta[1], Cl=theta[2], sigma=theta[3], dt=sampling_dt)
