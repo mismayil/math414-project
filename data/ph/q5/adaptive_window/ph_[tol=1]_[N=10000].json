@@ -1,7 +1,0 @@
-{
-    "tolerance": 1,
-    "phk_N": 10000,
-    "burn_in": 0.1,
-    "window_size": 100,
-    "acceptance_rate": 0.0237
-}

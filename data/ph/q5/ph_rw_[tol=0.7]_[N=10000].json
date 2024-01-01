@@ -2,5 +2,5 @@
     "tolerance": 0.7,
     "phk_N": 10000,
     "burn_in": 0.1,
-    "acceptance_rate": 0.007181818181818182
+    "acceptance_rate": 0.224
 }

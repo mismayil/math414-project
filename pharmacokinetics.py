@@ -91,7 +91,7 @@ class PHKRandomWalkNormalProposalModel(Model):
 
 class PHKRandomWalkMultiNormalProposalModel(Model):
     def __init__(self, theta):
-        self.model = MultivariateNormal(np.log(theta), np.diag([0.4, 0.6, 0.8, 0.3]))
+        self.model = MultivariateNormal(np.log(theta), np.diag(np.square([0.4, 0.6, 0.8, 0.3])))
     
     def sample(self, size=None):
         return np.exp(self.model.sample(size=size))
