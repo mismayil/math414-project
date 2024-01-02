@@ -1,4 +1,5 @@
 {
+    "seed": 42,
     "proposal_sigma": 3,
     "tolerance": 0.75,
     "N": 500,

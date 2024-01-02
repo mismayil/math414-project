@@ -30,6 +30,7 @@ if __name__ == "__main__":
             file_stem = f"ex_q3_[psigma={proposal_sigma}]_[tol={tolerance}]_[N={example_N}]"
             np.save(data_dir / f"{file_stem}.npy", sample)
             metadata = {
+                "seed": seed,
                 "proposal_sigma": proposal_sigma,
                 "tolerance": tolerance,
                 "N": example_N,

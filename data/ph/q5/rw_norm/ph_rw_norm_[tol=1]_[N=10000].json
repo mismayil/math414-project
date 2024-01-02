@@ -1,4 +1,5 @@
 {
+    "seed": 42,
     "tolerance": 1,
     "phk_N": 10000,
     "burn_in": 0.1,

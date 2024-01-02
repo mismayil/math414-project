@@ -63,7 +63,7 @@ def compute_cov(history, c_0, t=0, t_0=1, s_d=1, eps=0.001, cache=None):
 
     return c_t
 
-class PHKRandomWalkProposalModel(Model):
+class PHKRWLogNormProposalModel(Model):
     def __init__(self, theta):
         self.k_a_model = LogNormal(np.log(theta[0]), 0.4)
         self.k_e_model = LogNormal(np.log(theta[1]), 0.6)
@@ -76,7 +76,7 @@ class PHKRandomWalkProposalModel(Model):
     def pdf(self, x):
         return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
 
-class PHKRandomWalkNormalProposalModel(Model):
+class PHKRWNormProposalModel(Model):
     def __init__(self, theta):
         self.k_a_model = Normal(np.log(theta[0]), 0.4)
         self.k_e_model = Normal(np.log(theta[1]), 0.6)
@@ -89,7 +89,7 @@ class PHKRandomWalkNormalProposalModel(Model):
     def pdf(self, x):
         return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
 
-class PHKRandomWalkMultiNormalProposalModel(Model):
+class PHKRWMultiNormProposalModel(Model):
     def __init__(self, theta):
         self.model = MultivariateNormal(np.log(theta), np.diag(np.square([0.4, 0.6, 0.8, 0.3])))
     
@@ -102,7 +102,7 @@ class PHKRandomWalkMultiNormalProposalModel(Model):
 def compute_expected_theta(coefficients, data):
     return np.dot(coefficients, np.hstack([[1], data]).reshape(-1, 1)).squeeze()
 
-class PHKDataDrivenProposalModel(Model):
+class PHKRWDataDrivenProposalModel(Model):
     def __init__(self, coefficients, data):
         self.coefficients = coefficients
         self.data = data
@@ -144,19 +144,19 @@ class PHKAdaptiveProposalModel(Model):
     def pdf(self, x):
         return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
 
-def make_phk_random_walk_proposal_model(theta, **kwargs):
-    return PHKRandomWalkProposalModel(theta)
+def make_phk_rw_lognorm_proposal_model(theta, **kwargs):
+    return PHKRWLogNormProposalModel(theta)
 
-def make_phk_random_walk_normal_proposal_model(theta, **kwargs):
-    return PHKRandomWalkNormalProposalModel(theta)
+def make_phk_rw_norm_proposal_model(theta, **kwargs):
+    return PHKRWNormProposalModel(theta)
 
-def make_phk_random_walk_multi_normal_proposal_model(theta, **kwargs):
-    return PHKRandomWalkMultiNormalProposalModel(theta)
+def make_phk_rw_multi_norm_proposal_model(theta, **kwargs):
+    return PHKRWMultiNormProposalModel(theta)
 
-def make_phk_data_driven_proposal_model(coefficients, theta, data, **kwargs):
-    return PHKDataDrivenProposalModel(coefficients, data)
+def make_phk_rw_data_driven_proposal_model(coefficients, theta, data, **kwargs):
+    return PHKRWDataDrivenProposalModel(coefficients, data)
 
-def make_phk_adaptive_proposal_model(theta, theta_history, t_0=1, window_size=100):
+def make_phk_adaptive_proposal_model(theta, theta_history, t_0=1, window_size=100, **kwargs):
     if len(theta_history) == 0:
         return PHKAdaptiveProposalModel(theta_history=np.array([theta]), t_0=t_0)
     return PHKAdaptiveProposalModel(theta_history=np.vstack([theta_history[-window_size:], theta]), t_0=t_0)
