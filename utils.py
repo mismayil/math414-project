@@ -62,7 +62,7 @@ def run_abc_rejection(N, observed_data, prior_model, generate_data, compute_disc
     
     return sample, N / num_tries
 
-def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_data, compute_discrepancy, tolerance=0.1, theta_0=0, burn_in=0.1, data_0=0):
+def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_data, compute_discrepancy, tolerance=0.1, theta_0=0, burn_in=0.1, data_0=0, debug=False):
     sample = [theta_0]
     sample_data = [data_0]
     num_accepted = 0
@@ -84,6 +84,8 @@ def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_da
                 num_accepted += 1
             else:
                 sample.append(current_theta)
+            if debug:
+                print(f"i={i}, theta={new_theta}, alpha={alpha}, prob={prob}, accepted={prob < alpha}")
         else:
             sample.append(current_theta)
     
