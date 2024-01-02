@@ -1,5 +1,6 @@
 import scipy.stats as stats
 import numpy as np
+import matplotlib.pyplot as plt
 
 from utils import Model, Normal
 
@@ -63,3 +64,19 @@ def generate_example_data(theta, size):
 
 def compute_example_discrepancy(observed_data, generated_data):
     return np.abs(np.mean(generated_data) - example_mean)
+
+def plot_ex_samples(samples, posterior_model, tolerances, set_log=True, set_ylim=None):
+    fig, axes = plt.subplots(2, 2, figsize=(20, 10))
+
+    for i, sample in enumerate(samples):
+        axis = axes[i//2, i%2]
+        axis.hist(sample, bins=100, label=f"tolerance={tolerances[i]}", density=True)
+        x = np.linspace(min(sample), max(sample), len(sample))
+        posterior_density = [posterior_model.pdf(theta) for theta in x]
+        axis.plot(x, posterior_density, label="true posterior")
+        if set_log:
+            axis.set_yscale("log")
+        if set_ylim is not None:
+            axis.set_ylim(bottom=set_ylim)
+        axis.legend()
+    plt.show()
