@@ -8,10 +8,7 @@ from pharmacokinetics import PHKModel, sampling_dt, drug_dose
 
 seed = 42
 
-class NegativeBrownian(Normal):
-    def __init__(self, dt=0.01) -> None:
-        super().__init__(0, np.sqrt(dt))
-
+class NegativeNormal(Normal):
     def sample(self, size=None):
         return -super().sample(size=size)
 
@@ -41,7 +38,7 @@ if __name__ == '__main__':
 
     av_sample = []
 
-    negative_phk_model = PHKModel(D=drug_dose, K_a=posterior_theta[0], K_e=posterior_theta[1], Cl=posterior_theta[2], sigma=posterior_theta[3], dt=sampling_dt, brownian=NegativeBrownian(dt=sampling_dt))
+    negative_phk_model = PHKModel(D=drug_dose, K_a=posterior_theta[0], K_e=posterior_theta[1], Cl=posterior_theta[2], sigma=posterior_theta[3], dt=sampling_dt, brownian=NegativeNormal(0, np.sqrt(sampling_dt)))
 
     for i in tqdm(range(int(args.size/2)), desc="Generating AV samples"):
         positive_data = run_euler_maruyama([12], phk_model, dt=sampling_dt)
