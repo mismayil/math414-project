@@ -1,0 +1,8 @@
+{
+    "seed": 42,
+    "tolerance": 0.7,
+    "phk_N": 10000,
+    "burn_in": 0.1,
+    "acceptance_rate": 0.224,
+    "window_size": 100
+}
