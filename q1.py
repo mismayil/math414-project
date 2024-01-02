@@ -2,8 +2,8 @@ import numpy as np
 import pathlib
 import json
 
-from utils import Normal, run_abc_rejection, plot_samples
-from example import ExamplePosteriorModel, generate_example_data, compute_example_discrepancy, example_sigma, example_M, example_mean, example_a, example_sigma_1, example_N, example_tolerances
+from utils import Normal, run_abc_rejection
+from example import generate_example_data, compute_example_discrepancy, example_sigma, example_M, example_mean, example_a, example_sigma_1, example_N, example_tolerances
 
 seed = 42
 
@@ -15,7 +15,6 @@ if __name__ == "__main__":
     prior_model = Normal(0, example_sigma)
     example_theta = prior_model.sample()
     observed_data = generate_example_data(example_theta, example_M)
-    posterior_model = ExamplePosteriorModel(example_M, example_mean, example_a, example_sigma, example_sigma_1)
 
     tolerance_samples = []
 
@@ -38,5 +37,3 @@ if __name__ == "__main__":
         }
         with open(data_dir / f"{file_stem}.json", "w") as f:
             json.dump(metadata, f, indent=4)
-
-    plot_samples(tolerance_samples, posterior_model, example_tolerances, set_log=True, set_ylim=1e-6)

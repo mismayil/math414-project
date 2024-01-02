@@ -1,24 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import scipy.stats as stats
 import numpy as np
-import matplotlib.pyplot as plt
+
 from tqdm import tqdm
-
-def plot_samples(samples, posterior_model, tolerances, set_log=True, set_ylim=None):
-    fig, axes = plt.subplots(2, 2, figsize=(20, 10))
-
-    for i, sample in enumerate(samples):
-        axis = axes[i//2, i%2]
-        axis.hist(sample, bins=100, label=f"tolerance={tolerances[i]}", density=True)
-        x = np.linspace(min(sample), max(sample), len(sample))
-        posterior_density = [posterior_model.pdf(theta) for theta in x]
-        axis.plot(x, posterior_density, label="true posterior")
-        if set_log:
-            axis.set_yscale("log")
-        if set_ylim is not None:
-            axis.set_ylim(bottom=set_ylim)
-        axis.legend()
-    plt.show()
 
 class Model(ABC):
     def sample(self, size=None, *args, **kwargs):
