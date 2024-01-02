@@ -113,7 +113,7 @@ class PHKDataDrivenProposalModel(Model):
         self.sigma_model = LogNormal(np.log(self.theta[3]), 0.3)
 
     def sample(self, size=None):
-        return [self.k_a_model.sample(), self.k_e_model.sample(), self.cl_model.sample(), self.sigma_model.sample()]
+        return self.theta
 
     def pdf(self, x):
         return self.k_a_model.pdf(x[0]) * self.k_e_model.pdf(x[1]) * self.cl_model.pdf(x[2]) * self.sigma_model.pdf(x[3])
