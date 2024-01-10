@@ -17,20 +17,20 @@ if __name__ == "__main__":
     example_theta = prior_model.sample()
     observed_data = generate_example_data(example_theta, example_M)
 
-    proposal_sigmas = [0.01, 0.1, 0.5, 1, 3]
+    proposal_vars = [0.5, 1, 2, 4, 8, 16]
 
-    for proposal_sigma in proposal_sigmas:
+    for proposal_var in proposal_vars:
         tolerance_samples = []
         
         for tolerance in example_tolerances:
-            sample, acceptance_rate = run_abc_mcmc(example_N, observed_data, partial(make_example_proposal_model, sigma=proposal_sigma), prior_model, generate_example_data, compute_example_discrepancy, tolerance)
+            sample, acceptance_rate = run_abc_mcmc(example_N, observed_data, partial(make_example_proposal_model, sigma=np.sqrt(proposal_var)), prior_model, generate_example_data, compute_example_discrepancy, tolerance)
             print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
             tolerance_samples.append(sample)
-            file_stem = f"ex_q3_[psigma={proposal_sigma}]_[tol={tolerance}]_[N={example_N}]"
+            file_stem = f"ex_q3_[pvar={proposal_var}]_[tol={tolerance}]_[N={example_N}]"
             np.save(data_dir / f"{file_stem}.npy", sample)
             metadata = {
                 "seed": seed,
-                "proposal_sigma": proposal_sigma,
+                "proposal_var": proposal_var,
                 "tolerance": tolerance,
                 "N": example_N,
                 "M": example_M,
