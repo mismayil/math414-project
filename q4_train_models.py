@@ -1,3 +1,7 @@
+"""
+This file contains the code for training linear regression models on the generated train data for Pharmacokinetics problem.
+Models are saved under data/ph/q4.
+"""
 import pandas as pd
 import statsmodels.api as sm
 import pathlib
@@ -16,11 +20,15 @@ def train_model(train_df, target):
 
 if __name__ == '__main__':
     np.random.seed(seed)
+
+    # Setup output directory
     data_dir = pathlib.Path("data/ph/q4")
     data_dir.mkdir(parents=True, exist_ok=True)
 
+    # Load train data
     train_df = pd.read_csv(data_dir / f"ph_train_data_[size={train_size}].csv")
     
+    # Train models
     k_a_model = train_model(train_df, target="K_a")
     k_e_model = train_model(train_df, target="K_e")
     cl_model = train_model(train_df, target="Cl")

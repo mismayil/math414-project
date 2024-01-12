@@ -1,18 +1,48 @@
+"""
+This file contains common utility code such as implementations of statistical models and ABC algorithms.
+"""
 from abc import ABC
 import scipy.stats as stats
 import numpy as np
+from typing import Union, Callable, List, Tuple, Any
 
 from tqdm import tqdm
 
 class Model(ABC):
+    """Abstract class for statistical models."""
+
     def sample(self, size=None, *args, **kwargs):
+        """Sample from the model.
+
+        Args:
+            size (int, optional): Number of samples to generate. Defaults to None.
+
+        Returns:
+            float: The sample.
+        """
         raise NotImplementedError
 
     def pdf(self, x):
+        """Compute the probability density function of the model.
+
+        Args:
+            x (float): Value to compute the pdf at.
+        
+        Returns:
+            float: The pdf value.
+        """
         raise NotImplementedError
 
 class Normal(Model):
+    """Normal distribution."""
+
     def __init__(self, mu=0, sigma=1):
+        """Initialize the model.
+        
+        Args:
+            mu (float, optional): Mean of the distribution. Defaults to 0.
+            sigma (float, optional): Standard deviation of the distribution. Defaults to 1.
+        """
         self.mu = mu
         self.sigma = sigma
         self.dist = stats.norm(self.mu, self.sigma)
@@ -24,7 +54,15 @@ class Normal(Model):
         return self.dist.pdf(x)
 
 class LogNormal(Model):
+    """Log-normal distribution."""
+
     def __init__(self, mu=0, sigma=1):
+        """Initialize the model.
+
+        Args:
+            mu (float, optional): Mean of the underlying normal distribution. Defaults to 0.
+            sigma (float, optional): Standard deviation of the underlying normal distribution. Defaults to 1.
+        """
         self.mu = mu
         self.sigma = sigma
         self.dist = stats.lognorm(s=self.sigma, scale=np.exp(self.mu))
@@ -34,20 +72,22 @@ class LogNormal(Model):
 
     def pdf(self, x):
         return self.dist.pdf(x)
-
-class MultivariateNormal(Model):
-    def __init__(self, mu, cov):
-        self.mu = mu
-        self.cov = cov
-        self.dist = stats.multivariate_normal(self.mu, self.cov)
     
-    def sample(self, size=None):
-        return self.dist.rvs(size=size)
+def run_abc_rejection(N: int, observed_data: Union[List, np.array], prior_model: Model,
+                      generate_data: Callable, compute_discrepancy: Callable, tolerance: float = 0.1) -> Tuple[List, float]:
+    """Run the ABC rejection algorithm.
 
-    def pdf(self, x):
-        return self.dist.pdf(x)
+    Args:
+        N (int): Number of samples to generate.
+        observed_data (Union[List, np.array]): Observed data.
+        prior_model (Model): Prior model of the samples.
+        generate_data (Callable): Function to generate data from given parameters.
+        compute_discrepancy (Callable): Function to compute the discrepancy between two sets of data.
+        tolerance (float, optional): Tolerance for the discrepancy. Defaults to 0.1.
     
-def run_abc_rejection(N, observed_data, prior_model, generate_data, compute_discrepancy, tolerance=0.1):
+    Returns:
+        Tuple[List, float]: The generated samples and acceptance rate.
+    """
     sample = []
     num_tries = 0
 
@@ -60,9 +100,32 @@ def run_abc_rejection(N, observed_data, prior_model, generate_data, compute_disc
                 sample.append(theta)
                 pbar.update(1)
     
-    return sample, N / num_tries
+    acceptance_rate = N / num_tries
+    
+    return sample, acceptance_rate
 
-def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_data, compute_discrepancy, tolerance=0.1, theta_0=0, burn_in=0.1, data_0=0, debug=False):
+def run_abc_mcmc(N: int, observed_data: Union[List, np.array], make_proposal_model: Callable, 
+                 prior_model: Model, generate_data: Callable, compute_discrepancy: Callable, 
+                 tolerance: float = 0.1, theta_0: Any = 0, burn_in: float = 0.1, data_0: Any = 0,
+                 debug: bool = False) -> Tuple[List, float]:
+    """Run the ABC MCMC algorithm.
+
+    Args:
+        N (int): Number of samples to generate.
+        observed_data (Union[List, np.array]): Observed data.
+        make_proposal_model (Callable): Function to make the proposal model given the current parameters.
+        prior_model (Model): Prior model of the samples.
+        generate_data (Callable): Function to generate data from given parameters.
+        compute_discrepancy (Callable): Function to compute the discrepancy between two sets of data.
+        tolerance (float, optional): Tolerance for the discrepancy. Defaults to 0.1.
+        theta_0 (Any, optional): Initial parameter value. Defaults to 0.
+        burn_in (float, optional): Burn-in ratio. Defaults to 0.1.
+        data_0 (Any, optional): Initial data value. Defaults to 0.
+        debug (bool, optional): Whether to print debug information. Defaults to False.
+    
+    Returns:
+        Tuple[List, float]: The generated samples and acceptance rate.
+    """
     sample = [theta_0]
     sample_data = [data_0]
     num_accepted = 0
@@ -70,7 +133,8 @@ def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_da
 
     for i in tqdm(range(burn_in_size+N), desc="Generating samples"):
         current_theta = sample[-1]
-        current_proposal_model = make_proposal_model(theta=current_theta, data=sample_data[-1])
+        current_data = sample_data[-1]
+        current_proposal_model = make_proposal_model(theta=current_theta, data=current_data)
         new_theta = current_proposal_model.sample()
         generated_data = generate_data(new_theta, len(observed_data))
         new_proposal_model = make_proposal_model(theta=new_theta, data=generated_data) 
@@ -89,9 +153,23 @@ def run_abc_mcmc(N, observed_data, make_proposal_model, prior_model, generate_da
         else:
             sample.append(current_theta)
     
-    return sample[burn_in_size+1:], num_accepted / (N+burn_in_size)
+    acceptance_rate = num_accepted / (N+burn_in_size)
+    
+    return sample[burn_in_size+1:], acceptance_rate
 
-def run_euler_maruyama(sampling_times, model, x_0=0, dt=0.01, debug=False):
+def run_euler_maruyama(sampling_times: List[int], model: Model, x_0: Any = 0, dt: float = 0.01, debug: bool = False) -> List:
+    """Run the Euler-Maruyama algorithm.
+
+    Args:
+        sampling_times (List[int]): List of sampling times.
+        model (Model): Model to sample from.
+        x_0 (Any, optional): Initial value. Defaults to 0.
+        dt (float, optional): Time step. Defaults to 0.01.
+        debug (bool, optional): Whether to print debug information. Defaults to False.
+    
+    Returns:
+        List: The generated samples.
+    """
     x = [x_0]
     sample = []
     t = 0
@@ -101,6 +179,7 @@ def run_euler_maruyama(sampling_times, model, x_0=0, dt=0.01, debug=False):
         x_t_plus_1 = x_t + model.sample(x_t=x_t, t=t)
         x.append(x_t_plus_1)
 
+        # Check if the current timestep is a sampling time that we want to record at
         if any([np.isclose(t, sampling_time) for sampling_time in sampling_times]):
             if debug:
                 print(f"t={t}, x_t={x_t_plus_1}")
@@ -110,5 +189,14 @@ def run_euler_maruyama(sampling_times, model, x_0=0, dt=0.01, debug=False):
 
     return sample
 
-def weighted_euclidean_norm(x, weights=1):
+def weighted_euclidean_norm(x: np.array, weights: np.array = 1) -> float:
+    """Compute the weighted Euclidean norm.
+
+    Args:
+        x (np.array): Array of values.
+        weights (np.array, optional): Array of weights. Defaults to 1.
+    
+    Returns:
+        float: The weighted Euclidean norm.
+    """
     return np.sqrt(np.sum(np.square(x)/np.square(weights)))

@@ -1,10 +1,15 @@
+"""
+This file contains common code for the synthetic problem.
+"""
 import scipy.stats as stats
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import pathlib
 
 from utils import Model, Normal
 
+# Constants for the synthetic problem
 example_a = 1
 example_p = 1/2
 example_M = 100
@@ -15,6 +20,8 @@ example_N = 500
 example_tolerances = [0.75, 0.25, 0.1, 0.025]
 
 class ExampleLikelihoodModel(Model):
+    """Likelihood model for the synthetic problem."""
+
     def __init__(self, theta, a, sigma, p):
         self.theta = theta
         self.a = a
@@ -32,6 +39,8 @@ class ExampleLikelihoodModel(Model):
         return self.dist2.rvs(size=size)
 
 class ExamplePosteriorModel(Model):
+    """Posterior model for the synthetic problem."""
+
     def __init__(self, M, mean, a, sigma, sigma_1):
         self.a = a
         self.sigma = sigma
@@ -46,6 +55,8 @@ class ExamplePosteriorModel(Model):
         return self.alpha * self.normal_1.pdf(x) + (1-self.alpha) * self.normal_2.pdf(x)
 
 class ExampleProposalModel(Model):
+    """Proposal model for the synthetic problem."""
+
     def __init__(self, theta, sigma):
         self.theta = theta
         self.sigma = sigma
@@ -64,6 +75,7 @@ def generate_example_data(theta, size):
     return ExampleLikelihoodModel(theta, example_a, example_sigma_1, example_p).sample(size=size)
 
 def compute_example_discrepancy(observed_data, generated_data):
+    # The mean of the observed data is given to us (example_mean), so we ignore the data itself
     return np.abs(np.mean(generated_data) - example_mean)
 
 def plot_ex_samples(samples, posterior_model, tolerances, set_log=True, set_ylim=None, save_path=None):
@@ -94,4 +106,5 @@ def plot_ex_samples(samples, posterior_model, tolerances, set_log=True, set_ylim
     plt.show()
     
     if save_path is not None:
+        pathlib.Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path)

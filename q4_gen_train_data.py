@@ -1,6 +1,10 @@
 from tqdm import tqdm
 import pandas as pd
 import pathlib
+"""
+This file contains the code for generating training data to estimate the model parameters for Pharmacokinetics problem.
+Generated data is saved under data/ph/q4.
+"""
 import numpy as np
 
 from utils import run_euler_maruyama
@@ -30,8 +34,11 @@ def generate_train_data(train_size=100):
 
 if __name__ == '__main__':
     np.random.seed(seed)
+
+    # Setup output directory
     data_dir = pathlib.Path("data/ph/q4")
     data_dir.mkdir(parents=True, exist_ok=True)
 
+    # Generate train data and save as csv
     train_df = generate_train_data(train_size=train_size)
     train_df.to_csv(data_dir / f"ph_train_data_[size={train_size}].csv", index=False)
