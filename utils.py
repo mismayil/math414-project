@@ -134,9 +134,17 @@ def run_abc_mcmc(N: int, observed_data: Union[List, np.array], make_proposal_mod
     for i in tqdm(range(burn_in_size+N), desc="Generating samples"):
         current_theta = sample[-1]
         current_data = sample_data[-1]
+        
+        # Define q(theta, ·)
         current_proposal_model = make_proposal_model(theta=current_theta, data=current_data)
+
+        # Sample theta* from q(theta, ·)
         new_theta = current_proposal_model.sample()
+
+        # Generate data from theta*
         generated_data = generate_data(new_theta, len(observed_data))
+
+        # Define q(theta*, ·)
         new_proposal_model = make_proposal_model(theta=new_theta, data=generated_data) 
 
         if compute_discrepancy(observed_data, generated_data) < tolerance:
