@@ -5,6 +5,7 @@ from abc import ABC
 import scipy.stats as stats
 import numpy as np
 from typing import Union, Callable, List, Tuple, Any
+import statsmodels.api as sm
 
 from tqdm import tqdm
 
@@ -45,7 +46,7 @@ class Normal(Model):
         """
         self.mu = mu
         self.sigma = sigma
-        self.dist = stats.norm(self.mu, self.sigma)
+        self.dist = stats.norm(loc=self.mu, scale=self.sigma)
     
     def sample(self, size=None):
         return self.dist.rvs(size=size)
@@ -106,7 +107,7 @@ def run_abc_rejection(N: int, observed_data: Union[List, np.array], prior_model:
 
 def run_abc_mcmc(N: int, observed_data: Union[List, np.array], make_proposal_model: Callable, 
                  prior_model: Model, generate_data: Callable, compute_discrepancy: Callable, 
-                 tolerance: float = 0.1, theta_0: Any = 0, burn_in: float = 0.1, data_0: Any = 0,
+                 tolerance: float = 0.1, theta_0: Any = 0, burn_in: float = 0.1, ess_lag: int = 1, data_0: Any = 0,
                  debug: bool = False) -> Tuple[List, float]:
     """Run the ABC MCMC algorithm.
 
@@ -120,6 +121,7 @@ def run_abc_mcmc(N: int, observed_data: Union[List, np.array], make_proposal_mod
         tolerance (float, optional): Tolerance for the discrepancy. Defaults to 0.1.
         theta_0 (Any, optional): Initial parameter value. Defaults to 0.
         burn_in (float, optional): Burn-in ratio. Defaults to 0.1.
+        ess_lag (int, optional): Number of lags to use for the effective sample size. Defaults to 1.
         data_0 (Any, optional): Initial data value. Defaults to 0.
         debug (bool, optional): Whether to print debug information. Defaults to False.
     
@@ -129,40 +131,55 @@ def run_abc_mcmc(N: int, observed_data: Union[List, np.array], make_proposal_mod
     sample = [theta_0]
     sample_data = [data_0]
     num_accepted = 0
+    num_tries = 0
+    effective_size = 0
     burn_in_size = int(N * burn_in)
+    total_N = N + burn_in_size
 
-    for i in tqdm(range(burn_in_size+N), desc="Generating samples"):
-        current_theta = sample[-1]
-        current_data = sample_data[-1]
-        
-        # Define q(theta, ·)
-        current_proposal_model = make_proposal_model(theta=current_theta, data=current_data)
+    with tqdm(total=total_N, desc="Generating samples") as pbar:
+        while True:
+            num_tries += 1
+            current_theta = sample[-1]
+            current_data = sample_data[-1]
+            
+            # Define q(theta, ·)
+            current_proposal_model = make_proposal_model(theta=current_theta, data=current_data)
 
-        # Sample theta* from q(theta, ·)
-        new_theta = current_proposal_model.sample()
+            # Sample theta* from q(theta, ·)
+            new_theta = current_proposal_model.sample()
 
-        # Generate data from theta*
-        generated_data = generate_data(new_theta, len(observed_data))
+            # Generate data from theta*
+            generated_data = generate_data(new_theta, len(observed_data))
 
-        # Define q(theta*, ·)
-        new_proposal_model = make_proposal_model(theta=new_theta, data=generated_data) 
+            # Define q(theta*, ·)
+            new_proposal_model = make_proposal_model(theta=new_theta, data=generated_data) 
 
-        if compute_discrepancy(observed_data, generated_data) < tolerance:
-            alpha = min(1, (prior_model.pdf(new_theta) * new_proposal_model.pdf(current_theta)) / (prior_model.pdf(current_theta) * current_proposal_model.pdf(new_theta)))
-            prob = stats.uniform.rvs()
-            if prob < alpha:
-                sample.append(new_theta)
-                sample_data.append(generated_data)
-                num_accepted += 1
+            if compute_discrepancy(observed_data, generated_data) < tolerance:
+                alpha = min(1, (prior_model.pdf(new_theta) * new_proposal_model.pdf(current_theta)) / (prior_model.pdf(current_theta) * current_proposal_model.pdf(new_theta)))
+                prob = stats.uniform.rvs()
+                if prob < alpha:
+                    sample.append(new_theta)
+                    sample_data.append(generated_data)
+                    num_accepted += 1
+                else:
+                    sample.append(current_theta)
+                if debug:
+                    print(f"theta={new_theta}, alpha={alpha}, prob={prob}, accepted={prob < alpha}")
             else:
                 sample.append(current_theta)
-            if debug:
-                print(f"i={i}, theta={new_theta}, alpha={alpha}, prob={prob}, accepted={prob < alpha}")
-        else:
-            sample.append(current_theta)
-    
-    acceptance_rate = num_accepted / (N+burn_in_size)
-    
+
+            if len(sample) > total_N:
+                # Compute effective sample size
+                autocorr = sm.tsa.acf(sample[burn_in_size:], fft=True, nlags=ess_lag)
+                new_effective_size = len(sample) / (1 + 2 * np.sum(autocorr[1:]))
+                pbar.update(max(0, int(new_effective_size) - int(effective_size)))
+                effective_size = new_effective_size
+
+            if effective_size >= N:
+                break
+
+    acceptance_rate = num_accepted / num_tries
+
     return sample[burn_in_size+1:], acceptance_rate
 
 def run_euler_maruyama(sampling_times: List[int], model: Model, x_0: Any = 0, dt: float = 0.01, debug: bool = False) -> List:

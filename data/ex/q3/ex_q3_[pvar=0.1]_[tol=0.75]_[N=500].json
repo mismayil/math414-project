@@ -1,6 +1,6 @@
 {
     "seed": 42,
-    "proposal_var": 4,
+    "proposal_var": 0.1,
     "tolerance": 0.75,
     "N": 500,
     "M": 100,
@@ -9,5 +9,5 @@
     "sigma_1": 0.31622776601683794,
     "data_mean": 0,
     "ess_lag": 10,
-    "acceptance_rate": 0.2556818181818182
+    "acceptance_rate": 0.5811134789557805
 }

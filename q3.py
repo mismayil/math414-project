@@ -29,14 +29,15 @@ if __name__ == "__main__":
     observed_data = generate_example_data(example_theta, example_M)
 
     # Define proposal variances
-    proposal_vars = [0.5, 1, 2, 4, 8]
+    proposal_vars = [0.1, 0.5, 1, 2, 4, 8]
+    ess_lag = 10
 
     for proposal_var in proposal_vars:
         tolerance_samples = []
         
         for tolerance in example_tolerances:
             sample, acceptance_rate = run_abc_mcmc(example_N, observed_data, partial(make_example_proposal_model, sigma=np.sqrt(proposal_var)),
-                                                   prior_model, generate_example_data, compute_example_discrepancy, tolerance)
+                                                   prior_model, generate_example_data, compute_example_discrepancy, tolerance, ess_lag=ess_lag)
             print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
             tolerance_samples.append(sample)
 
@@ -53,6 +54,7 @@ if __name__ == "__main__":
                 "sigma": example_sigma,
                 "sigma_1": example_sigma_1,
                 "data_mean": example_mean,
+                "ess_lag": ess_lag,
                 "acceptance_rate": acceptance_rate
             }
             with open(data_dir / f"{file_stem}.json", "w") as f:

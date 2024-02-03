@@ -3,7 +3,6 @@ This file contains common code for the synthetic problem.
 """
 import scipy.stats as stats
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 import pathlib
 
@@ -48,8 +47,8 @@ class ExamplePosteriorModel(Model):
         self.mean = mean
         self.M = M
         self.alpha = 1 / (1 + np.exp(a * (mean - a/2) * (self.M / (self.M*sigma**2 + sigma_1**2))))
-        self.normal_1 = Normal((sigma**2 / (sigma**2 + sigma_1**2/self.M)) * mean, sigma_1**2/(self.M + sigma_1**2/sigma**2))
-        self.normal_2 = Normal((sigma**2 / (sigma**2 + sigma_1**2/self.M)) * (mean-a), sigma_1**2/(self.M + sigma_1**2/sigma**2))
+        self.normal_1 = Normal((sigma**2 / (sigma**2 + sigma_1**2/self.M)) * mean, np.sqrt(sigma_1**2/(self.M + sigma_1**2/sigma**2)))
+        self.normal_2 = Normal((sigma**2 / (sigma**2 + sigma_1**2/self.M)) * (mean-a), np.sqrt(sigma_1**2/(self.M + sigma_1**2/sigma**2)))
     
     def pdf(self, x):
         return self.alpha * self.normal_1.pdf(x) + (1-self.alpha) * self.normal_2.pdf(x)
@@ -78,7 +77,7 @@ def compute_example_discrepancy(observed_data, generated_data):
     # The mean of the observed data is given to us (example_mean), so we ignore the data itself
     return np.abs(np.mean(generated_data) - example_mean)
 
-def plot_ex_samples(samples, posterior_model, tolerances, set_log=True, set_ylim=None, save_path=None):
+def plot_ex_samples(samples, posterior_model, tolerances, save_path=None):
     fig, axes = plt.subplots(2, 2, figsize=(20, 15))
     plt.rcParams['font.size'] = '16'
 
@@ -88,11 +87,6 @@ def plot_ex_samples(samples, posterior_model, tolerances, set_log=True, set_ylim
         posterior_density = [posterior_model.pdf(theta) for theta in x]
         axis.hist(sample, bins=100, label="simulation", density=True)
         axis.plot(x, posterior_density, label="true posterior")
-        
-        if set_log:
-            axis.set_yscale("log")
-        if set_ylim is not None:
-            axis.set_ylim(bottom=set_ylim)
     
         # Set tick font size
         for label in (axis.get_xticklabels() + axis.get_yticklabels()):
