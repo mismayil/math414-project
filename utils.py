@@ -254,7 +254,7 @@ def compute_ess(samples: List, ess_lag: int = 1) -> List[int]:
         ess = len(samples) / (1 + 2 * np.sum(acorr[1:]))
         ess_sizes.append(int(ess))
 
-    return ess_sizes
+    return np.array(ess_sizes)
 
 def run_abc_mcmc_ess(sample, sample_data, N: int, observed_data: Union[List, np.array], make_proposal_model: Callable, 
                  prior_model: Model, generate_data: Callable, compute_discrepancy: Callable, 
