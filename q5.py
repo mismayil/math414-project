@@ -28,7 +28,6 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--proposal", type=str, default="rw_lognorm")
     parser.add_argument("-N", "--N", type=int, default=phk_N)
     parser.add_argument("-b", "--burn_in", type=float, default=burn_in)
-    parser.add_argument("-e", "--ess-lag", type=int, default=10)
     parser.add_argument("-o", "--output-dir", type=str, default="data/ph/q5")
 
     args = parser.parse_args()
@@ -77,7 +76,7 @@ if __name__ == "__main__":
                                                 tolerance,
                                                 theta_0=theta_0,
                                                 burn_in=args.burn_in,
-                                                ess_lag=args.ess_lag,
+                                                ess_lag=0,
                                                 data_0=data_0)
         print(f"tolerance: {tolerance}, acceptance rate: {acceptance_rate*100:.2f}%")
         phk_samples.append(sample)
