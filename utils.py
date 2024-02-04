@@ -233,7 +233,30 @@ def weighted_euclidean_norm(x: np.array, weights: np.array = 1) -> float:
     """
     return np.sqrt(np.sum(np.square(x)/np.square(weights)))
 
-def run_abc_mcmc_ess(N: int, observed_data: Union[List, np.array], make_proposal_model: Callable, 
+def compute_ess(samples: List, ess_lag: int = 1) -> List[int]:
+    """Compute the effective sample size.
+
+    Args:
+        samples (List): List of samples.
+        ess_lag (int, optional): Number of lags to use for the effective sample size. Defaults to 1.
+    
+    Returns:
+        List[int]: The effective sample sizes for each dimension of samples.
+    """
+    samples = np.array(samples)
+    ess_sizes = []
+
+    if samples.ndim == 1:
+        samples = samples.reshape(-1, 1)
+    
+    for dim in range(samples.shape[1]):
+        acorr = sm.tsa.acf(samples[:, dim], fft=True, nlags=ess_lag)
+        ess = len(samples) / (1 + 2 * np.sum(acorr[1:]))
+        ess_sizes.append(int(ess))
+
+    return ess_sizes
+
+def run_abc_mcmc_ess(sample, sample_data, N: int, observed_data: Union[List, np.array], make_proposal_model: Callable, 
                  prior_model: Model, generate_data: Callable, compute_discrepancy: Callable, 
                  tolerance: float = 0.1, theta_0: Any = 0, burn_in: float = 0.1, ess_lag: int = 1, data_0: Any = 0,
                  debug: bool = False) -> Tuple[List, float]:
@@ -256,15 +279,16 @@ def run_abc_mcmc_ess(N: int, observed_data: Union[List, np.array], make_proposal
     Returns:
         Tuple[List, float]: The generated samples and acceptance rate.
     """
-    sample = [theta_0]
-    sample_data = [data_0]
+    # sample = [theta_0]
+    # sample_data = [data_0]
     num_accepted = 0
-    num_tries = 0
-    effective_size = 0
+    num_tries = len(sample)
+    ess = 0
     burn_in_size = int(N * burn_in)
     total_N = N + burn_in_size
 
     with tqdm(total=total_N, desc="Generating samples") as pbar:
+        pbar.update(len(sample))
         while True:
             num_tries += 1
             current_theta = sample[-1]
@@ -298,16 +322,16 @@ def run_abc_mcmc_ess(N: int, observed_data: Union[List, np.array], make_proposal
 
             if len(sample) >= total_N:
                 # Compute effective sample size
-                autocorr = sm.tsa.acf(sample[burn_in_size:], fft=True, nlags=ess_lag)
-                new_effective_size = len(sample) / (1 + 2 * np.sum(autocorr[1:]))
-
+                new_ess = compute_ess(sample[burn_in_size:], ess_lag)
+                print(new_ess)
+                
                 if num_tries == total_N:
                     pbar.clear()
 
-                pbar.update(max(0, int(new_effective_size) - int(effective_size)))
-                effective_size = new_effective_size
+                pbar.update(max(0, np.min(new_ess - ess)))
+                ess = new_ess
 
-            if effective_size >= N:
+            if np.all(ess >= N):
                 break
 
             if num_tries < total_N:

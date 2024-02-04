@@ -9,6 +9,7 @@ import pathlib
 import json
 import argparse
 
+from utils import run_abc_mcmc_ess
 from pharmacokinetics import (make_phk_rw_lognorm_proposal_model,  
                               make_phk_rw_data_driven_proposal_model,
                               compute_phk_discrepancy, generate_phk_data, 
@@ -28,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("-N", "--N", type=int, default=phk_N)
     parser.add_argument("-b", "--burn_in", type=float, default=burn_in)
     parser.add_argument("-e", "--ess-lag", type=int, default=10)
-    parser.add_argument("-o", "--output-dir", type=str, default="data/ph/q5")
+    parser.add_argument("-o", "--output-dir", type=str, default="data/ph/q5-ess")
 
     args = parser.parse_args()
 
@@ -67,7 +68,15 @@ if __name__ == "__main__":
     phk_samples = []
 
     for tolerance in phk_tolerances:
-        sample, acceptance_rate = run_abc_mcmc(args.N, 
+        past_sample = np.load(f"data/ph/q5/{args.proposal}/ph_{args.proposal}_[tol={tolerance}]_[N={args.N}].npy").tolist()
+        past_data = [None]
+
+        if args.proposal == "rw_dd":
+            phk_model = PHKModel(D=drug_dose, K_a=past_sample[-1][0], K_e=past_sample[-1][1], Cl=past_sample[-1][2], sigma=past_sample[-1][3], dt=sampling_dt)
+            data_0 = run_euler_maruyama(sampling_times, phk_model, dt=sampling_dt, debug=True)
+            past_data = [data_0]
+
+        sample, acceptance_rate = run_abc_mcmc_ess(past_sample, past_data, args.N, 
                                                 observed_data, 
                                                 proposal_map[args.proposal], 
                                                 phk_prior_model, 
